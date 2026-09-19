@@ -1,0 +1,93 @@
+services:
+  # appという名前のサービスを1つ定義する。
+  app:
+    # 自分でイメージをビルドする
+    build:
+      # Dockerに渡すデータ一式の場所
+      context: .
+      # ビルド手順に使うファイル
+      dockerfile: Dockerfile
+      # ビルト中だけ有効なネットワーク設定
+      # この設定だとインターネット接続が必要な場合にホストのネットワークを使用できる。
+      network: host
+    ports:
+      - 8080:${PORT}
+    # 菅家用変数を渡す
+    # コンテナ起動時に環境変数を注入する
+    # docker compose upするときに外から値が渡される。
+    environment:
+      HOST: ${HOST}
+      PORT: ${PORT}
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      AUTH_TOKEN_TTL: ${AUTH_TOKEN_TTL}
+      JAEGER_HOST: ${JAEGER_HOST}
+      JAEGER_PORT: ${JAEGER_PORT}
+    # appコンテナを起動する前にredisとpostgresのコンテナを先に起動しておく。
+    # 先に起動するだけで接続完了ではまたないのでhealthcheckで回避する。
+    depends_on:
+      - redis
+      - postgres
+
+  # 全てのデータをメモリ上に保存する高速なデータベース(KVS)
+  redis:
+    # 既製の公開イメージを使う
+    image: redis:alpine
+    # ポート公開の設定 "ホスト側:コンテナ側"
+    ports:
+      - ${REDIS_PORT_OUTER}:${REDIS_PORT_INNER}
+
+  # PostgresSQL
+  postgres:
+    # 既製イメージを使う。
+    image: postgres:15
+    # コンテナ起動時に実行するコマンドを上書きする。
+    # log_destination=stderr — ログの出力先を標準エラー出力にする(docker compose logsなどで見えるようにするため)
+    # log_statement=all — 実行された全てのSQL文をログに出す
+    # log_connections=on / log_disconnections=on — 接続・切断のたびにログを出す
+    command: postgres -c log_destination=stderr -c log_statement=all -c log_connections=on -c log_disconnections=on
+    # ポート設定
+    ports:
+      - ${DATABASE_PORT_OUTER}:${DATABASE_PORT_INNER}
+    # 名前付きボリュームdbをコンテナ内の/var~にマウントする。
+    # データを書き込むディレクトリがホスト側のボリュームに保存される。
+    volumes:
+      - db:/var/lib/postgres/data
+    # コンテナで使う環境変数
+    environment:
+      # データベースに接続する際のユーザー名
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      # データベースに接続する際のパスワード
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      # 使用するデータベース名
+      POSTGRES_DB: ${DATABASE_NAME}
+    # 接続可能な状態かをDocker自身に判定させる仕組み
+    healthcheck:
+      # 実行するチェックコマンド
+      # pg-isreadyが接続を受け付けられる状態かを確認するコマンド
+      test: [ "CMD", "pg_isready", "-U", "${DATABASE_USERNAME}" ]
+      # このチェックを実行する間隔
+      interval: 1m30s
+      # 1回のチェックの制限時間
+      timeout: 30s
+      # 5回連続で失敗したらynhealthyとする。
+      retries: 5
+      # 起動直後の30秒間は失敗してもリトライ回数にカウントしない。
+      start_period: 30s
+
+# 名前付きボリューム
+# - コンテナを削除するとその中に書き込んだデータも消えてしまうので、
+#   コンテナの外に保存するための設定
+# - データを永続化することができる。
+volumes:
+  # dbという名前にする
+  db:
+    # ホストのディスクに保存する
+    driver: local
+
+# ホスト:Dockerを動かしているPCのこと
