@@ -3,7 +3,7 @@ use std::net::{Ipv4Addr, SocketAddr};
 use anyhow::Result;
 use axum::{extract::State, http::StatusCode, routing::get, Router};
 use tokio::net::TcpListener;
-use sqlx::{postgres::PgPoolOptions, postgres::PgConnectOptions, PgPool, Executor, Pool};
+use sqlx::{postgres::PgConnectOptions, PgPool};
 
 async fn hello_world() -> &'static str{
     "Hello, World!"
@@ -82,7 +82,7 @@ fn connect_database_with(cfg: DatabaseConfig) -> PgPool{
 #[sqlx::test]
 async fn health_check_db_works(pool: sqlx::PgPool){
     // 引数のPgPoolは環境変数のDATABASE_URLから作成される。
-    // 
+    //
     let status_code = health_check_db(State(pool)).await;
     assert_eq!(status_code, StatusCode::OK);
 }
