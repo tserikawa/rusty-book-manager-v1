@@ -5,16 +5,16 @@ use kernel::model::book::{event::CreateBook, Book};
 use kernel::repository::book::BookRepository;
 use uuid::Uuid;
 
-use crate::database::ConnectionPool;
 use crate::database::model::book::BookRow;
+use crate::database::ConnectionPool;
 
 #[derive(new)]
-pub struct BookRepositoryImpl{
-    db: ConnectionPool
+pub struct BookRepositoryImpl {
+    db: ConnectionPool,
 }
 
 #[async_trait]
-impl BookRepository for BookRepositoryImpl{
+impl BookRepository for BookRepositoryImpl {
     async fn create(&self, event: CreateBook) -> Result<()> {
         sqlx::query!(
             r#"
@@ -75,16 +75,16 @@ impl BookRepository for BookRepositoryImpl{
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use super::*;
 
     #[sqlx::test]
-    async fn test_register_book(pool: sqlx::PgPool) -> anyhow::Result<()>{
+    async fn test_register_book(pool: sqlx::PgPool) -> anyhow::Result<()> {
         // BookRepositoryImplの初期化
         let repo = BookRepositoryImpl::new(ConnectionPool::new(pool));
 
         // 蔵書データの作成
-        let book = CreateBook{
+        let book = CreateBook {
             title: "Test Title".into(),
             author: "Test Author".into(),
             isbn: "Test ISBN".into(),
@@ -110,7 +110,7 @@ mod tests{
             title,
             author,
             isbn,
-            description
+            description,
         } = res.unwrap();
         assert_eq!(book_id, id);
         assert_eq!(title, "Test Title");
