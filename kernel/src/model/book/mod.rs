@@ -1,4 +1,4 @@
-use uuid::Uuid;
+use crate::model::id::BookId;
 
 pub mod event;
 
@@ -6,7 +6,7 @@ pub mod event;
 /// 読み取りに使用する。
 #[derive(Debug)]
 pub struct Book {
-    pub id: Uuid,
+    pub id: BookId,
     pub title: String,
     pub author: String,
     pub isbn: String,

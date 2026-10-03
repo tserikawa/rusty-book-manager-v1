@@ -1,9 +1,9 @@
 use kernel::model::book::Book;
-use uuid::Uuid;
+use kernel::model::id::BookId;
 
 /// データベースのレコードを読み取るための構造体
 pub struct BookRow {
-    pub book_id: Uuid,
+    pub book_id: BookId,
     pub title: String,
     pub author: String,
     pub isbn: String,
