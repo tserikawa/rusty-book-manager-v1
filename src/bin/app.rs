@@ -2,6 +2,8 @@ use std::net::{Ipv4Addr, SocketAddr};
 
 use adapter::database::connect_database_with;
 use anyhow::{Context, Result};
+use api::route::book::build_book_routers;
+use api::route::health::build_health_check_routers;
 use axum::Router;
 use registry::AppRegistry;
 use shared::{
@@ -13,8 +15,6 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, Tr
 use tower_http::LatencyUnit;
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use api::route::book::build_book_routers;
-use api::route::health::build_health_check_routers;
 
 #[tokio::main]
 async fn main() -> Result<()> {
