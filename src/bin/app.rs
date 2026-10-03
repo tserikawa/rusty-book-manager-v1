@@ -2,7 +2,7 @@ use std::net::{Ipv4Addr, SocketAddr};
 
 use adapter::database::connect_database_with;
 use anyhow::{Error, Result};
-use api::route::health::build_health_check_routers;
+use api::route::{book::build_book_routers, health::build_health_check_routers};
 use axum::Router;
 use registry::AppRegistry;
 use shared::config::AppConfig;
@@ -23,11 +23,12 @@ async fn bootstrap() -> Result<()> {
     // ルーティング
     let app = Router::new()
         .merge(build_health_check_routers())
+        .merge(build_book_routers())
         .with_state(registry);
     // サーバーの起動
     let addr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 8080);
-    let listner = TcpListener::bind(&addr).await?;
+    let listener = TcpListener::bind(&addr).await?;
 
     println!("Listening on: {}", addr);
-    axum::serve(listner, app).await.map_err(Error::from)
+    axum::serve(listener, app).await.map_err(Error::from)
 }
