@@ -1,5 +1,5 @@
 use std::net::{Ipv4Addr, SocketAddr};
-
+use std::sync::Arc;
 use adapter::database::connect_database_with;
 use anyhow::{Context, Result};
 use api::route::book::build_book_routers;
@@ -15,6 +15,8 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, Tr
 use tower_http::LatencyUnit;
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use adapter::redis::RedisClient;
+use api::route::auth::routes;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -27,12 +29,15 @@ async fn bootstrap() -> Result<()> {
     let app_config = AppConfig::new()?;
     // データベースへの接続のためのコネクションプールを取り出す。
     let pool = connect_database_with(&app_config.database);
+    // redisへの接続を行うクライアントのインスタンス
+    let kv = Arc::new(RedisClient::new(&app_config.redis)?);
     // AppRegistryを生成する。
-    let registry = AppRegistry::new(pool);
+    let registry = AppRegistry::new(pool, kv, app_config);
     // ルーティング
     let app = Router::new()
         .merge(build_health_check_routers())
         .merge(build_book_routers())
+        .merge(routes())
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
