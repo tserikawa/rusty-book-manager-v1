@@ -1,7 +1,7 @@
-use std::net::{Ipv4Addr, SocketAddr};
-use std::sync::Arc;
 use adapter::database::connect_database_with;
+use adapter::redis::RedisClient;
 use anyhow::{Context, Result};
+use api::route::auth::routes;
 use api::route::book::build_book_routers;
 use api::route::health::build_health_check_routers;
 use axum::Router;
@@ -10,13 +10,13 @@ use shared::{
     config::AppConfig,
     env::{which, Environment},
 };
+use std::net::{Ipv4Addr, SocketAddr};
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer};
 use tower_http::LatencyUnit;
 use tracing::Level;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
-use adapter::redis::RedisClient;
-use api::route::auth::routes;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -84,3 +84,12 @@ fn init_logger() -> Result<()> {
 
     Ok(())
 }
+
+
+// 5.4.5　ログアウト機能の動作確認
+// cargo make run
+// ログイン
+// curl -v "http://localhost:8080/auth/login" -H 'content-type: application/json' -d '{"email":"eleazar.fig@example.com","password":"password"}'
+// > {"userId":"fa322ffe6a5942ed9e4b11f832253bb3","accessToken":"2f41167c778e45c9b16d8134eb1ce436"}
+// ログアウト
+// curl -v -X POST "http://localhost:8080/auth/logout" -H 'Authorization: Bearer a392bd7fd9814612ac1836a73ef387d0'
